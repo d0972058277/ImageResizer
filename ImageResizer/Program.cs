@@ -38,6 +38,19 @@ namespace ImageResizer
             //    Console.WriteLine($"同步 {total / round}");
             //});
 
+            CancellationTokenSource cts = new CancellationTokenSource();
+
+            #region 等候使用者輸入 取消 c 按鍵
+            ThreadPool.QueueUserWorkItem(x =>
+            {
+                ConsoleKeyInfo key = Console.ReadKey();
+                if (key.Key == ConsoleKey.C)
+                {
+                    cts.Cancel();
+                }
+            });
+            #endregion
+
             await Task.Run(async () =>
             {
                 long total = 0;
@@ -49,7 +62,17 @@ namespace ImageResizer
                     imageProcess.Clean(destinationPath);
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 2.0);
+                    try
+                    {
+                        await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 2.0, cts.Token);
+                    }
+                    catch
+                    {
+                        imageProcess.Clean(destinationPath);
+                        Console.WriteLine("取消");
+                        break;
+                    }
+                    await Task.Delay(1000);
                     sw.Stop();
 
                     Console.WriteLine($"非同步 花費時間: {sw.ElapsedMilliseconds} ms");

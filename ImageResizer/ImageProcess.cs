@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ImageResizer
@@ -69,9 +70,10 @@ namespace ImageResizer
         /// <param name="sourcePath">圖片來源目錄路徑</param>
         /// <param name="destPath">產生圖片目的目錄路徑</param>
         /// <param name="scale">縮放比例</param>
-        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale)
+        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale, CancellationToken token)
         {
             var allFiles = FindImages(sourcePath);
+            token.ThrowIfCancellationRequested();
             var tasks = allFiles.Select(filePath =>
             {
                 Task t = Task.Run(() =>
@@ -85,6 +87,7 @@ namespace ImageResizer
                     int destionatonWidth = (int)(sourceWidth * scale);
                     int destionatonHeight = (int)(sourceHeight * scale);
 
+                    token.ThrowIfCancellationRequested();
                     Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
                         sourceWidth, sourceHeight,
                         destionatonWidth, destionatonHeight);
@@ -97,6 +100,7 @@ namespace ImageResizer
                 });
                 return t;
             });
+            token.ThrowIfCancellationRequested();
             await Task.WhenAll(tasks);
         }
 
